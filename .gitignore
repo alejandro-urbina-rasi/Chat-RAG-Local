@@ -1,0 +1,39 @@
+# Dependencias
+node_modules/
+package-lock.json
+
+# Variables de entorno
+.env
+
+# Bases de datos
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Archivos subidos
+uploads/
+*.pdf
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code
+.claude/
+
+# Temporal
+tmp/
+temp/
+*.tmp

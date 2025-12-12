@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Documentos - RAG</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      color: #333;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f8f9fa;
+      color: #333;
+      border: 2px solid #e1e8ed;
+    }
+
+    .btn-secondary:hover {
+      background: #e9ecef;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .card h2 {
+      font-size: 20px;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    .upload-area {
+      border: 3px dashed #e1e8ed;
+      border-radius: 12px;
+      padding: 48px;
+      text-align: center;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .upload-area:hover {
+      border-color: #667eea;
+      background: #f8f9fa;
+    }
+
+    .upload-area.drag-over {
+      border-color: #667eea;
+      background: #f0f4ff;
+    }
+
+    .upload-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .upload-area h3 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .upload-area p {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    .progress {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e1e8ed;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .progress-text {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    .documents-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .document-item {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .document-item:hover {
+      background: #e9ecef;
+    }
+
+    .document-info {
+      flex: 1;
+    }
+
+    .document-name {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .document-meta {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .document-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 13px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .btn-danger {
+      background: #fee;
+      color: #c33;
+    }
+
+    .btn-danger:hover {
+      background: #fcc;
+    }
+
+    .message {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message.success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+
+    .message.error {
+      background: #fee;
+      border: 1px solid #fcc;
+      color: #c33;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+      }
+
+      .document-item {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📄 Gestión de Documentos</h1>
+      <div class="header-actions">
+        <button class="btn btn-secondary" id="backBtn">← Volver al Chat</button>
+        <button class="btn btn-secondary" id="logoutBtn">🚪 Salir</button>
+      </div>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <div class="stats" id="stats">
+      <div class="stat-card">
+        <div class="stat-value" id="docCount">-</div>
+        <div class="stat-label">Documentos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="chunkCount">-</div>
+        <div class="stat-label">Chunks</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Subir Nuevo Documento</h2>
+      <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">📄</div>
+        <h3>Arrastra un archivo PDF aquí</h3>
+        <p>o haz clic para seleccionar</p>
+        <button class="btn btn-primary">Seleccionar Archivo</button>
+        <input type="file" id="fileInput" class="file-input" accept=".pdf">
+      </div>
+      <div class="progress" id="progress">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Documentos Cargados</h2>
+      <div class="documents-list" id="documentsList">
+        <div class="empty-state">
+          <div class="empty-state-icon">📂</div>
+          <p>No hay documentos cargados</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000';
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const progress = document.getElementById('progress');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const documentsList = document.getElementById('documentsList');
+    const message = document.getElementById('message');
+    const backBtn = document.getElementById('backBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Check admin auth
+    checkAuth();
+
+    async function checkAuth() {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/session`, {
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (!data.authenticated || data.user.role !== 'admin') {
+          window.location.href = '/chat.html';
+          return;
+        }
+
+        loadDocuments();
+        loadStats();
+      } catch (error) {
+        console.error('Error checking auth:', error);
+        window.location.href = '/login.html';
+      }
+    }
+
+    // Navigation
+    backBtn.addEventListener('click', () => {
+      window.location.href = '/chat.html';
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        await fetch(`${API_URL}/api/auth/logout`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        window.location.href = '/login.html';
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    });
+
+    // Drag and drop
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('drag-over');
+
+      const file = e.dataTransfer.files[0];
+      if (file && file.type === 'application/pdf') {
+        uploadFile(file);
+      } else {
+        showMessage('Por favor selecciona un archivo PDF', 'error');
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        uploadFile(file);
+      }
+    });
+
+    async function uploadFile(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      progress.style.display = 'block';
+      progressFill.style.width = '0%';
+      progressText.textContent = 'Subiendo archivo...';
+
+      try {
+        const response = await fetch(`${API_URL}/api/upload-pdf`, {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          progressFill.style.width = '100%';
+          progressText.textContent = '✓ Documento procesado exitosamente';
+          showMessage(`Documento "${data.file}" procesado: ${data.chunks} chunks generados`, 'success');
+
+          setTimeout(() => {
+            progress.style.display = 'none';
+            fileInput.value = '';
+            loadDocuments();
+            loadStats();
+          }, 2000);
+        } else {
+          throw new Error(data.error || 'Error al procesar el documento');
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        showMessage(error.message, 'error');
+        progress.style.display = 'none';
+        fileInput.value = '';
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const response = await fetch(`${API_URL}/api/documents`, {
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (data.documents) {
+          document.getElementById('docCount').textContent = data.documents.length;
+          document.getElementById('chunkCount').textContent = data.total_chunks || 0;
+        }
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+
+    async function loadDocuments() {
+      try {
+        const response = await fetch(`${API_URL}/api/documents`, {
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (!data.documents || data.documents.length === 0) {
+          documentsList.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📂</div>
+              <p>No hay documentos cargados</p>
+            </div>
+          `;
+          return;
+        }
+
+        documentsList.innerHTML = data.documents.map(doc => `
+          <div class="document-item">
+            <div class="document-info">
+              <div class="document-name">${doc.filename}</div>
+              <div class="document-meta">${doc.chunks} chunks</div>
+            </div>
+            <div class="document-actions">
+              <button class="btn-small btn-danger" onclick="deleteDocument('${doc.filename}')">
+                🗑️ Eliminar
+              </button>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading documents:', error);
+        showMessage('Error al cargar documentos', 'error');
+      }
+    }
+
+    async function deleteDocument(filename) {
+      if (!confirm(`¿Estás seguro de eliminar "${filename}"?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/api/documents/${encodeURIComponent(filename)}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          showMessage(`Documento "${filename}" eliminado exitosamente`, 'success');
+          loadDocuments();
+          loadStats();
+        } else {
+          throw new Error(data.error || 'Error al eliminar el documento');
+        }
+      } catch (error) {
+        console.error('Delete error:', error);
+        showMessage(error.message, 'error');
+      }
+    }
+
+    function showMessage(text, type) {
+      message.textContent = text;
+      message.className = `message ${type} show`;
+
+      setTimeout(() => {
+        message.classList.remove('show');
+      }, 5000);
+    }
+  </script>
+</body>
+</html>
