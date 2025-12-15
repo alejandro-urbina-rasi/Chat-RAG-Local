@@ -179,7 +179,7 @@ class VectorStore {
    * @returns {Array} - Array de documentos con similarity score y metadata de ubicación
    */
   searchSimilar(queryEmbedding, topK = 3, similarityThreshold = 0.3, filenameFilter = null) {
-    // Construir query con filtro opcional 
+    // Construir query con filtro opcional
     let query = 'SELECT id, filename, text, embedding, page, char_start, char_end FROM documents';
     const params = [];
 
@@ -191,7 +191,7 @@ class VectorStore {
     const stmt = this.db.prepare(query);
     const documents = stmt.all(...params);
 
-    // Calcular similitudes 
+    // Calcular similitudes
     const results = documents.map(doc => {
       const embedding = JSON.parse(doc.embedding);
       const similarity = this.cosineSimilarity(queryEmbedding, embedding);
@@ -201,19 +201,34 @@ class VectorStore {
         filename: doc.filename,
         text: doc.text,
         similarity: similarity,
-        page: doc.page,           
-        charStart: doc.char_start, 
-        charEnd: doc.char_end      
+        page: doc.page,
+        charStart: doc.char_start,
+        charEnd: doc.char_end
       };
     });
 
     // Filtrar por threshold y ordenar por similitud descendente
     const filtered = results
       .filter(doc => doc.similarity >= similarityThreshold)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, topK);
+      .sort((a, b) => b.similarity - a.similarity);
 
-    return filtered;
+    // Deduplicate by text content (safety measure against database duplicates)
+    // Keep only the first occurrence of each unique text
+    const seenTexts = new Set();
+    const deduplicated = [];
+
+    for (const doc of filtered) {
+      if (!seenTexts.has(doc.text)) {
+        seenTexts.add(doc.text);
+        deduplicated.push(doc);
+
+        if (deduplicated.length >= topK) {
+          break;
+        }
+      }
+    }
+
+    return deduplicated;
   }
 
   /**

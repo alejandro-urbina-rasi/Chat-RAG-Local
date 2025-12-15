@@ -216,15 +216,28 @@ app.post('/api/upload', requireAuth(authService), requireAdmin, upload.single('f
 
 // Upload and process PDF with embeddings (admin only)
 app.post('/api/upload-pdf', requireAuth(authService), requireAdmin, upload.single('file'), validatePDFUpload, asyncHandler(async (req, res) => {
+  // Check if this file (by multer filename) is already processed to prevent duplicates
+  const existingChunks = vectorStore.getChunkCount(req.file.filename);
+
+  if (existingChunks > 0) {
+    // File already processed - delete the uploaded file to avoid storage waste
+    fs.unlinkSync(req.file.path);
+
+    throw new AppError(
+      `This file appears to be already processed (${existingChunks} chunks found). Please delete the existing document first if you want to re-process it.`,
+      409 // Conflict status code
+    );
+  }
+
   const result = await processPDFDocument(req.file, config.rag);
 
   // Store in VectorStore
   vectorStore.insertChunksBatch(result.chunksWithEmbeddings);
-  console.log(`✓ Guardado en VectorStore: ${result.chunksWithEmbeddings.length} documentos\n`);
+  console.log(`✓ Saved to VectorStore: ${result.chunksWithEmbeddings.length} documents\n`);
 
   res.json({
     success: true,
-    message: 'PDF procesado correctamente',
+    message: 'PDF processed successfully',
     file: req.file.originalname,
     pages: result.pdfData.numPages,
     chunks: result.chunks.length,

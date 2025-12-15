@@ -17,60 +17,63 @@ const pdf = require('pdf-parse');
 async function extractTextFromPDFWithPages(filePath) {
   const dataBuffer = fs.readFileSync(filePath);
 
-  // Opciones para pdf-parse: extraer texto página por página
-  const options = {
-    // Función personalizada para procesar cada página
-    pagerender: async function(pageData) {
-      // Obtener el texto de la página
-      const textContent = await pageData.getTextContent();
+  // Custom page render function for text extraction
+  const pageRenderFunction = async function(pageData) {
+    // Get the text content from the page
+    const textContent = await pageData.getTextContent();
 
-      // Extraer texto de los items
-      let pageText = textContent.items.map(item => item.str).join(' ');
+    // Extract text from items
+    let pageText = textContent.items.map(item => item.str).join(' ');
 
-      // LIMPIEZA: Normalizar espacios
-      pageText = pageText
-        .replace(/\s+/g, ' ')  // Múltiples espacios a uno solo
-        .trim();
+    // CLEANUP: Normalize spaces
+    pageText = pageText
+      .replace(/\s+/g, ' ')  // Multiple spaces to single space
+      .trim();
 
-      return pageText;
-    }
+    return pageText;
   };
 
   try {
-    const data = await pdf(dataBuffer, options);
+    // First: Get page count only (without full text extraction)
+    // Using a minimal pagerender that returns empty string to avoid processing text
+    const metadataOptions = {
+      max: 0, // Don't process any pages for text
+      pagerender: () => '' // Return empty string to skip text extraction
+    };
+    const metadata = await pdf(dataBuffer, metadataOptions);
+    const numPages = metadata.numpages;
 
-    console.log(`\n📄 Extracción con pdf-parse:`);
-    console.log(`   Total de páginas: ${data.numpages}`);
-    console.log(`   Texto total: ${data.text.length} caracteres`);
+    console.log(`\n[PDF] Extraction with pdf-parse:`);
+    console.log(`   Total pages: ${numPages}`);
 
-    // Construir array de páginas con metadata
+    // Build array of pages with metadata
     const pages = [];
     let charPosition = 0;
 
-    // Extraer texto por página individualmente
-    for (let pageNum = 1; pageNum <= data.numpages; pageNum++) {
+    // Extract text page by page individually
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
       const pageOptions = {
         first: pageNum,
         last: pageNum,
-        pagerender: options.pagerender
+        pagerender: pageRenderFunction
       };
 
       const pageData = await pdf(dataBuffer, pageOptions);
       let pageText = pageData.text;
 
-      // DEBUG: Mostrar muestra del texto de cada página
-      console.log(`\n🔍 DEBUG Página ${pageNum}:`);
-      console.log(`   Texto extraído (primeros 300 chars): "${pageText.substring(0, 300)}"`);
-      console.log(`   Longitud: ${pageText.length} caracteres`);
+      // DEBUG: Show sample of text from each page
+      console.log(`\n[DEBUG] Page ${pageNum}:`);
+      console.log(`   Extracted text (first 300 chars): "${pageText.substring(0, 300)}"`);
+      console.log(`   Length: ${pageText.length} characters`);
 
-      // Análisis de tokens para verificar calidad del texto
+      // Token analysis to verify text quality
       const tokens = pageText.split(/\s+/).filter(t => t.length > 0);
       const avgTokenLength = tokens.length > 0
         ? tokens.reduce((sum, t) => sum + t.length, 0) / tokens.length
         : 0;
 
-      console.log(`   Tokens: ${tokens.length}, Longitud promedio: ${avgTokenLength.toFixed(2)}`);
-      console.log(`   Primeros 10 tokens: ${JSON.stringify(tokens.slice(0, 10))}\n`);
+      console.log(`   Tokens: ${tokens.length}, Average length: ${avgTokenLength.toFixed(2)}`);
+      console.log(`   First 10 tokens: ${JSON.stringify(tokens.slice(0, 10))}\n`);
 
       const charStart = charPosition;
       const charEnd = charPosition + pageText.length;
@@ -82,22 +85,22 @@ async function extractTextFromPDFWithPages(filePath) {
         charEnd: charEnd
       });
 
-      charPosition = charEnd + 1; // +1 para el salto de línea entre páginas
+      charPosition = charEnd + 1; // +1 for the newline between pages
     }
 
-    // Reconstruir texto completo de todas las páginas
+    // Reconstruct full text from all pages
     const fullText = pages.map(p => p.text).join('\n');
 
-    console.log(`\n✓ Extracción completa: ${fullText.length} caracteres de ${pages.length} páginas\n`);
+    console.log(`\n[OK] Extraction complete: ${fullText.length} characters from ${pages.length} pages\n`);
 
     return {
       fullText: fullText.trim(),
-      numPages: data.numpages,
+      numPages: numPages,
       pages: pages
     };
 
   } catch (error) {
-    throw new Error(`Error procesando PDF con pdf-parse: ${error.message}`);
+    throw new Error(`Error processing PDF with pdf-parse: ${error.message}`);
   }
 }
 

@@ -1,54 +1,54 @@
 /**
- * Módulo de Prompts RAG
+ * RAG Prompts Module
  *
- * Centraliza todas las plantillas de prompts para el sistema RAG.
- * Evita duplicación y facilita el ajuste de prompts.
+ * Centralizes all prompt templates for the RAG system.
+ * Avoids duplication and facilitates prompt adjustment.
  */
 
 const RESPONSE_FORMATTING_INSTRUCTIONS = `
-Si la respuesta tiene múltiples puntos, úsalos numerados así:
-1. Primer punto
-2. Segundo punto
+If the response has multiple points, use numbered formatting like this:
+1. First point
+2. Second point
 
-Si necesitas hacer una lista, usa viñetas:
-- Elemento 1
-- Elemento 2
+If you need to make a list, use bullets:
+- Item 1
+- Item 2
 
-Usa **texto** para palabras importantes y separa párrafos con saltos de línea.`;
+Use **text** for important words and separate paragraphs with line breaks.`;
 
-const STRICT_MODE_INSTRUCTIONS = `Eres un asistente que SOLO responde con información EXACTAMENTE como aparece en los documentos proporcionados.
+const STRICT_MODE_INSTRUCTIONS = `You are an assistant that ONLY responds with information EXACTLY as it appears in the provided documents.
 
-REGLAS ESTRICTAS:
-1. PROHIBIDO agregar información, suposiciones, opiniones o conocimiento general que NO esté explícitamente en el contexto.
-2. PROHIBIDO ser creativo, elaborar, extrapolar o complementar la respuesta con información externa.
-3. SOLO puedes parafrasear o citar textualmente lo que está escrito en el contexto proporcionado.
-4. Si la pregunta NO puede responderse COMPLETAMENTE con el contexto dado, responde ÚNICAMENTE: "No encontré esta información en los documentos cargados."
-5. Si solo encuentras información PARCIAL, indícalo claramente: "Los documentos solo mencionan [información encontrada], pero no contienen más detalles sobre [lo que falta]."
-6. NO hagas inferencias ni deducciones más allá de lo explícitamente escrito.
-7. NO uses frases como "probablemente", "podría ser", "es posible que" - solo afirma lo que está escrito.
+STRICT RULES:
+1. FORBIDDEN to add information, assumptions, opinions, or general knowledge that is NOT explicitly in the context.
+2. FORBIDDEN to be creative, elaborate, extrapolate, or supplement the response with external information.
+3. You can ONLY paraphrase or quote verbatim what is written in the provided context.
+4. If the question CANNOT be answered COMPLETELY with the given context, respond ONLY: "I did not find this information in the loaded documents."
+5. If you only find PARTIAL information, clearly indicate this: "The documents only mention [found information], but do not contain more details about [what is missing]."
+6. DO NOT make inferences or deductions beyond what is explicitly written.
+7. DO NOT use phrases like "probably", "could be", "it's possible that" - only state what is written.
 
-Tu única función es extraer y presentar la información tal cual aparece en los documentos, sin añadir nada más.`;
+Your only function is to extract and present the information exactly as it appears in the documents, without adding anything else.`;
 
 /**
- * Construye prompt RAG con modo estricto opcional
+ * Builds RAG prompt with optional strict mode
  *
- * @param {string} context - Contexto de documentos recuperados
- * @param {string} query - Consulta del usuario
- * @param {boolean} strict - Si debe forzar modo estricto (solo usar contexto provisto)
- * @returns {string} Prompt completo para el LLM
+ * @param {string} context - Context from retrieved documents
+ * @param {string} query - User's query
+ * @param {boolean} strict - Whether to enforce strict mode (only use provided context)
+ * @returns {string} Complete prompt for the LLM
  */
 function buildRAGPrompt(context, query, strict = true) {
   const strictInstructions = strict ? `${STRICT_MODE_INSTRUCTIONS}\n\n` : '';
 
-  return `${strictInstructions}Basándote en el siguiente contexto, responde la pregunta de manera clara y estructurada.
+  return `${strictInstructions}Based on the following context, answer the question clearly and in a structured manner.
 ${RESPONSE_FORMATTING_INSTRUCTIONS}
 
-Contexto:
+Context:
 ${context}
 
-Pregunta: ${query}
+Question: ${query}
 
-Respuesta:`;
+Answer:`;
 }
 
 module.exports = {
